@@ -1,4 +1,5 @@
 import { css } from 'lit';
+
 export default css`
   :host {
     --ha-card-border-width: 0px;
@@ -20,6 +21,7 @@ export default css`
     margin-top: 2.5rem;
     padding: 0px 1rem 0.5rem;
     row-gap: 0px;
+    background-color: #ffffffcc;
     background-image: linear-gradient(
       24deg,
       rgba(var(--mutedColorRgb), 0.8) 0%,

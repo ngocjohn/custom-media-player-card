@@ -2422,6 +2422,7 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     margin-top: 2.5rem;
     padding: 0px 1rem 0.5rem;
     row-gap: 0px;
+    background-color: #ffffffcc;
     background-image: linear-gradient(
       24deg,
       rgba(var(--mutedColorRgb), 0.8) 0%,
