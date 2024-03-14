@@ -210,6 +210,7 @@ export class MyMediaPlayerCard extends LitElement {
     }
 
     const isPlaying = stateObj && stateObj.state === 'playing';
+    const isPaused = stateObj && stateObj.state === 'paused';
     const entityImage = stateObj.attributes.entity_picture;
     let entityPicture = entityImage ? entityImage : '/local/img/idle_art.png';
 
@@ -222,7 +223,11 @@ export class MyMediaPlayerCard extends LitElement {
       <ha-card>
         <div
           id="my-media-player-card"
-          class="music-player ${isPlaying ? 'music-active' : ''}"
+          class="music-player ${isPlaying
+            ? 'music-active'
+            : isPaused
+            ? 'music-active music-paused'
+            : ''}"
         >
           <div
             class="cover ${isPlaying ? 'cover-active' : ''}"

@@ -21,6 +21,7 @@ export default css`
     margin-top: 2.5rem;
     padding: 0px 1rem 0.5rem;
     row-gap: 0px;
+    transition: all 0.7s ease-in 0s;
     background-color: #ffffffcc;
     background-image: linear-gradient(
       24deg,
@@ -28,7 +29,10 @@ export default css`
       rgba(var(--lightMutedColorRgb), 0.7) 65%,
       rgba(var(--lightMutedColorRgb), 0) 100%
     );
-    transition: all 0.7s ease-in 0s;
+    &.music-paused {
+      margin-top: 0;
+      padding: 1rem;
+    }
   }
   .cover {
     position: relative;

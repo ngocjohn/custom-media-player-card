@@ -2422,6 +2422,7 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     margin-top: 2.5rem;
     padding: 0px 1rem 0.5rem;
     row-gap: 0px;
+    transition: all 0.7s ease-in 0s;
     background-color: #ffffffcc;
     background-image: linear-gradient(
       24deg,
@@ -2429,7 +2430,10 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
       rgba(var(--lightMutedColorRgb), 0.7) 65%,
       rgba(var(--lightMutedColorRgb), 0) 100%
     );
-    transition: all 0.7s ease-in 0s;
+    &.music-paused {
+      margin-top: 0;
+      padding: 1rem;
+    }
   }
   .cover {
     position: relative;
@@ -2891,6 +2895,7 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         // If state object is not available, render an unknown entity message
         if (!stateObj) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)` <ha-card>Unknown entity: ${this._config.entity}</ha-card> `;
         const isPlaying = stateObj && stateObj.state === "playing";
+        const isPaused = stateObj && stateObj.state === "paused";
         const entityImage = stateObj.attributes.entity_picture;
         let entityPicture = entityImage ? entityImage : "/local/img/idle_art.png";
         // Determine if media is playing
@@ -2901,7 +2906,7 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
       <ha-card>
         <div
           id="my-media-player-card"
-          class="music-player ${isPlaying ? "music-active" : ""}"
+          class="music-player ${isPlaying ? "music-active" : isPaused ? "music-active music-paused" : ""}"
         >
           <div
             class="cover ${isPlaying ? "cover-active" : ""}"
