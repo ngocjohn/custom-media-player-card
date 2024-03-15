@@ -238,10 +238,8 @@ export class MyMediaPlayerCard extends LitElement {
           </div>
           <div class="bottom-bar progress-visible">
             ${this._renderProgresBar()} ${this._renderVolumeSlider()}
-            <div class="volumeBtn">
-              <button id="volumeBtn" @click=${this.toggleVolumeControl}>
-                ${volumeBtn}
-              </button>
+            <div id="volumeBtn" class="volumeBtn">
+              <button @click=${this.toggleVolumeControl}>${volumeBtn}</button>
             </div>
           </div>
         </div>
@@ -263,6 +261,11 @@ export class MyMediaPlayerCard extends LitElement {
     const bottomBar = this.shadowRoot.querySelector('.bottom-bar');
     bottomBar.classList.toggle('volume-visible');
     bottomBar.classList.toggle('progress-visible');
+    this.playPopupSound();
+  }
+   playPopupSound() {
+    const audioElement = new Audio('/local/popup.m4a');
+    audioElement.play();
   }
   // Event handler to update the volume property when the slider value changes
   handleVolumeChange(event) {
