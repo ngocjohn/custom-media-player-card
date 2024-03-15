@@ -1,9 +1,4 @@
-var LitElement =
-  LitElement || Object.getPrototypeOf(customElements.get('ha-panel-lovelace'));
-var html = LitElement.prototype.html;
-var css = LitElement.prototype.css;
-import styles from './src/styles.css' assert { type: 'css' };
-
+import { LitElement, html, css } from 'lit';
 import { extractColorsFromImage } from './vibrant-utils.js';
 import {
   prevBtn,
@@ -13,10 +8,10 @@ import {
   volumePlus,
 } from './my-player-card.icons';
 
-// import styles from './my-player-card.styles.js';
+import styles from './my-player-card.styles.js';
 
 // Defining the custom element class
-class MyMediaPlayerCard extends LitElement {
+export class MyMediaPlayerCard extends LitElement {
   // Properties definition
   static get properties() {
     return {
@@ -172,6 +167,16 @@ class MyMediaPlayerCard extends LitElement {
     `;
   }
 
+  // Centralized method to update volume
+  _updateVolumeLevel(newVolume) {
+    this.volume = newVolume;
+    this.requestUpdate(); // if needed, to reflect the changes in the UI
+    this.hass.callService('media_player', 'volume_set', {
+      entity_id: this._config.entity,
+      volume_level: newVolume / 100, // Normalize volume for Home Assistant
+    });
+  }
+
   _renderVolumeSlider() {
     const stateObj = this.hass.states[this._config.entity];
     this.volume =
@@ -215,6 +220,7 @@ class MyMediaPlayerCard extends LitElement {
     }
 
     const isPlaying = stateObj && stateObj.state === 'playing';
+    const isPaused = stateObj && stateObj.state === 'paused';
     const entityImage = stateObj.attributes.entity_picture;
     let entityPicture = entityImage ? entityImage : '/local/img/idle_art.png';
 
@@ -227,7 +233,11 @@ class MyMediaPlayerCard extends LitElement {
       <ha-card>
         <div
           id="my-media-player-card"
-          class="music-player ${isPlaying ? 'music-active' : ''}"
+          class="music-player ${isPlaying
+            ? 'music-active'
+            : isPaused
+            ? 'music-active music-paused'
+            : ''}"
         >
           <div
             class="cover ${isPlaying ? 'cover-active' : ''}"
@@ -238,10 +248,8 @@ class MyMediaPlayerCard extends LitElement {
           </div>
           <div class="bottom-bar progress-visible">
             ${this._renderProgresBar()} ${this._renderVolumeSlider()}
-            <div class="volumeBtn">
-              <button id="volumeBtn" @click=${this.toggleVolumeControl}>
-                ${volumeBtn}
-              </button>
+            <div id="volumeBtn" class="volumeBtn">
+              <button @click=${this.toggleVolumeControl}>${volumeBtn}</button>
             </div>
           </div>
         </div>
@@ -263,7 +271,13 @@ class MyMediaPlayerCard extends LitElement {
     const bottomBar = this.shadowRoot.querySelector('.bottom-bar');
     bottomBar.classList.toggle('volume-visible');
     bottomBar.classList.toggle('progress-visible');
+    this.playPopupSound();
   }
+  playPopupSound() {
+    const audioElement = new Audio('/local/popup.m4a');
+    audioElement.play();
+  }
+
   // Event handler to update the volume property when the slider value changes
   handleVolumeChange(event) {
     this.volume = event.target.value;
@@ -404,13 +418,3 @@ class MyMediaPlayerCard extends LitElement {
     }, 1000);
   }
 }
-// Registering the custom element
-customElements.define('my-media-player-card', MyMediaPlayerCard);
-console.info('My Media Player loaded');
-
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'my-media-player-card',
-  name: 'my-media-player-card',
-  description: 'my custom media card',
-});

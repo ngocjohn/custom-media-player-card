@@ -2762,6 +2762,14 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         // Bind the toggleVolumeControl method to the class instance
         this.toggleVolumeControl = this.toggleVolumeControl.bind(this);
     }
+    // Method to set configuration
+    setConfig(config) {
+        this._config = config;
+    }
+    // Method to get the size of the card
+    getCardSize() {
+        return 3;
+    }
     // Callback when the element is added to the DOM
     connectedCallback() {
         super.connectedCallback();
@@ -2807,23 +2815,10 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         const secondsLeft = pad(Math.floor(seconds % 60));
         return `${minutes}:${secondsLeft}`;
     }
-    _renderMediaInfo() {
-        const stateObj = this.hass.states[this._config.entity];
-        const mediaTitle = stateObj ? stateObj.attributes.media_title : "Unknown";
-        const mediaArtist = stateObj ? stateObj.attributes.media_artist : "Unknown";
-        const isPlaying = stateObj && stateObj.state === "playing";
-        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-      <div id="mediaInfo" class="metadata">
-        <h2
-          id="mediaTitle"
-          style="text-wrap:${!isPlaying ? "pretty" : ""};"
-          class="media-title"
-        >
-          <span>${mediaTitle}</span>
-        </h2>
-        <p>${mediaArtist}</p>
-      </div>
-    `;
+    // Lifecycle method for handling property updates
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        if (changedProperties.has("_config")) this._initializeVolume();
     }
     _renderControls() {
         const stateObj = this.hass.states[this._config.entity];
@@ -2857,9 +2852,26 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
       </div>
     `;
     }
+    _renderMediaInfo() {
+        const stateObj = this.hass.states[this._config.entity];
+        const mediaTitle = stateObj ? stateObj.attributes.media_title : "Unknown";
+        const mediaArtist = stateObj ? stateObj.attributes.media_artist : "Unknown";
+        const isPlaying = stateObj && stateObj.state === "playing";
+        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+      <div id="mediaInfo" class="metadata">
+        <h2
+          id="mediaTitle"
+          style="text-wrap:${!isPlaying ? "pretty" : ""};"
+          class="media-title"
+        >
+          <span>${mediaTitle}</span>
+        </h2>
+        <p>${mediaArtist}</p>
+      </div>
+    `;
+    }
     _renderProgresBar() {
         const stateObj = this.hass.states[this._config.entity];
-        this.volume = stateObj && stateObj.attributes.volume_level ? stateObj.attributes.volume_level * 100 : 50;
         // Extracting media position and duration
         const mediaPosition = stateObj ? stateObj.attributes.media_position : 0;
         const mediaDuration = stateObj ? stateObj.attributes.media_duration : 0;
@@ -2875,9 +2887,28 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
       </div>
     `;
     }
-    _renderVolumeSlider() {
+    // Initialize the volume level based on the state object
+    _initializeVolume() {
         const stateObj = this.hass.states[this._config.entity];
-        this.volume = stateObj && stateObj.attributes.volume_level ? stateObj.attributes.volume_level * 100 : 50;
+        const initialVolume = stateObj && stateObj.attributes.volume_level ? stateObj.attributes.volume_level * 100 : 50;
+        this._updateVolumeLevel(initialVolume);
+    }
+    // Centralized method to update the volume
+    _updateVolumeLevel(newVolume) {
+        this.volume = newVolume;
+        this.requestUpdate();
+        this.hass.callService("media_player", "volume_set", {
+            entity_id: this._config.entity,
+            volume_level: newVolume / 100
+        });
+    }
+    // Method to handle volume change events
+    handleVolumeChange(event) {
+        const newVolume = parseInt(event.target.value, 10);
+        this._updateVolumeLevel(newVolume);
+    }
+    // Render the volume slider
+    _renderVolumeSlider() {
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       <div class="volume-input">
         <button
@@ -2939,14 +2970,6 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
       </ha-card>
     `;
     }
-    // Method to set configuration
-    setConfig(config) {
-        this._config = config;
-    }
-    // Method to get the size of the card
-    getCardSize() {
-        return 3;
-    }
     toggleVolumeControl() {
         const bottomBar = this.shadowRoot.querySelector(".bottom-bar");
         bottomBar.classList.toggle("volume-visible");
@@ -2957,25 +2980,8 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         const audioElement = new Audio("/local/popup.m4a");
         audioElement.play();
     }
-    // Event handler to update the volume property when the slider value changes
-    handleVolumeChange(event) {
-        this.volume = event.target.value;
-        this.updateVolume();
-        console.log(this.volume);
-    }
-    // Method to handle updating the volume_level attribute of the media player
-    updateVolume() {
-        let level_input = this.volume / 100;
-        this.hass.callService("media_player", "volume_set", {
-            entity_id: this._config.entity,
-            volume_level: this.volume / 100
-        });
-    }
     // Method to get the width of the mediaInfo div and log it to the console
     _getAndLogMediaInfoWidth() {
-        const stateObj = this.hass.states[this._config.entity];
-        // Determine if media is playing
-        const isPlaying = stateObj && stateObj.state === "playing";
         const mediaInfoDiv = this.shadowRoot.getElementById("mediaInfo");
         const mediaTitle = this.shadowRoot.getElementById("mediaTitle");
         if (mediaInfoDiv && mediaTitle) {
