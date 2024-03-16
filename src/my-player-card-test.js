@@ -167,16 +167,6 @@ export class MyMediaPlayerCard extends LitElement {
     `;
   }
 
-  // Centralized method to update volume
-  _updateVolumeLevel(newVolume) {
-    this.volume = newVolume;
-    this.requestUpdate(); // if needed, to reflect the changes in the UI
-    this.hass.callService('media_player', 'volume_set', {
-      entity_id: this._config.entity,
-      volume_level: newVolume / 100, // Normalize volume for Home Assistant
-    });
-  }
-
   _renderVolumeSlider() {
     const stateObj = this.hass.states[this._config.entity];
     this.volume =
@@ -277,7 +267,6 @@ export class MyMediaPlayerCard extends LitElement {
     const audioElement = new Audio('/local/popup.m4a');
     audioElement.play();
   }
-
   // Event handler to update the volume property when the slider value changes
   handleVolumeChange(event) {
     this.volume = event.target.value;

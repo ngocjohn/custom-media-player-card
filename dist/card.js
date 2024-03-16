@@ -2815,11 +2815,6 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         const secondsLeft = pad(Math.floor(seconds % 60));
         return `${minutes}:${secondsLeft}`;
     }
-    // Lifecycle method for handling property updates
-    updated(changedProperties) {
-        super.updated(changedProperties);
-        if (changedProperties.has("_config")) this._initializeVolume();
-    }
     _renderControls() {
         const stateObj = this.hass.states[this._config.entity];
         const isPlaying = stateObj && stateObj.state === "playing";
@@ -2887,28 +2882,22 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
       </div>
     `;
     }
-    // Initialize the volume level based on the state object
-    _initializeVolume() {
-        const stateObj = this.hass.states[this._config.entity];
-        const initialVolume = stateObj && stateObj.attributes.volume_level ? stateObj.attributes.volume_level * 100 : 50;
-        this._updateVolumeLevel(initialVolume);
+    handleVolumeChange(event) {
+        this.volume = event.target.value;
+        this.updateVolume();
     }
-    // Centralized method to update the volume
-    _updateVolumeLevel(newVolume) {
-        this.volume = newVolume;
-        this.requestUpdate();
+    // Method to handle updating the volume_level attribute of the media player
+    updateVolume() {
+        const level_input = this.volume / 100;
         this.hass.callService("media_player", "volume_set", {
             entity_id: this._config.entity,
-            volume_level: newVolume / 100
+            volume_level: level_input
         });
-    }
-    // Method to handle volume change events
-    handleVolumeChange(event) {
-        const newVolume = parseInt(event.target.value, 10);
-        this._updateVolumeLevel(newVolume);
     }
     // Render the volume slider
     _renderVolumeSlider() {
+        const stateObj = this.hass.states[this._config.entity];
+        this.volume = stateObj && stateObj.attributes.volume_level ? stateObj.attributes.volume_level * 100 : "";
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       <div class="volume-input">
         <button
