@@ -19,6 +19,7 @@ export class MyMediaPlayerCard extends LitElement {
     return {
       hass: {}, // Home Assistant instance
       _config: {}, // Configuration object
+      audio: { type: String },
       entityId: { type: String },
       isPlaying: { type: Boolean }, // Add isPlaying property
       isPaused: { type: Boolean }, // Add isPlaying property
@@ -40,6 +41,23 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   static styles = [styles];
+
+  set hass(obj) {
+    this._hass = obj;
+  }
+
+  get hass() {
+    return this._hass;
+  }
+  // Method to set configuration
+  setConfig(config) {
+    this._config = config;
+    if (this._config) {
+      this.entityId = this._config.entity;
+      this.audio = this._config.audio;
+      console.log('Audio:', this.audio, 'Entity', this.entityId);
+    }
+  }
   // Constructor
   constructor() {
     super();
@@ -47,18 +65,10 @@ export class MyMediaPlayerCard extends LitElement {
     this.progress = 0;
     this.mediaPosition = 0;
     this.mediaDuration = 0;
+    this.audio = '';
     this._animationFrameId = null; // Animation frame ID for progress update
     // Bind the toggleVolumeControl method to the class instance
     this.toggleVolumeControl = this.toggleVolumeControl.bind(this);
-  }
-
-  get entityId() {
-    return this._entityId;
-  }
-
-  set entityId(newEntityId) {
-    this._entityId = newEntityId;
-    this.requestUpdate(); // Ensure LitElement re-renders when entityId changes
   }
 
   get entityState() {
@@ -322,10 +332,14 @@ export class MyMediaPlayerCard extends LitElement {
     const bottomBar = this.shadowRoot.querySelector('.bottom-bar');
     bottomBar.classList.toggle('volume-visible');
     bottomBar.classList.toggle('progress-visible');
-    this.playPopupSound();
+    if (this.audio) {
+      this.playPopupSound();
+    }
   }
   playPopupSound() {
-    const audioElement = new Audio('/local/sound/popup.m4a');
+    if (!this.audio) return;
+    const audioUrl = this.audio;
+    const audioElement = new Audio(audioUrl);
     audioElement.play();
   }
 
@@ -386,26 +400,11 @@ export class MyMediaPlayerCard extends LitElement {
 
   // Method to handle media control commands
   _serviceCmd(service_type) {
-    console.log(service_type);
     this.hass.callService('media_player', service_type, {
       entity_id: this.entityId,
     });
-    setTimeout(() => {
-      const mediaTitle = this.shadowRoot.getElementById('mediaTitle');
-      const mediaInfoWidth =
-        this.shadowRoot.getElementById('mediaInfo').clientWidth;
-      const mediaTitleWidth =
-        this.shadowRoot.getElementById('mediaTitle').clientWidth;
-      console.log('title:', mediaTitleWidth, 'info:', mediaInfoWidth);
-    }, 1000);
   }
-  // Method to set configuration
-  setConfig(config) {
-    this._config = config;
-    if (this._config) {
-      this.entityId = this._config.entity;
-    }
-  }
+
   static getStubConfig(hass) {
     // Filter for media players that are 'on' or 'playing'
     const mediaPlayers = Object.keys(hass.states).filter((entityId) => {
