@@ -9,9 +9,10 @@ export default css`
     box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px;
     background-color: #ffffffcc;
     color: rgb(0, 0, 0);
+    padding: 0px 16px 0.5rem;
+    /* padding: 1rem; */
   }
   .music-player {
-    padding: 1rem;
     display: grid;
     align-items: center;
     box-sizing: content-box;
@@ -22,12 +23,10 @@ export default css`
   }
   .music-active {
     margin-top: 2.5rem;
-    padding: 0px 1rem 0.5rem;
     row-gap: 0px;
     transition: all 0.7s ease-in 0s;
     &.music-paused {
       margin-top: 0;
-      padding: 0.5rem 1rem;
     }
   }
 
@@ -155,7 +154,7 @@ export default css`
   .volume-input {
     display: flex;
     font-size: large;
-    width: 88%;
+    width: 85%;
     font-weight: 600;
     height: auto;
     align-items: center;

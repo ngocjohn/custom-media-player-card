@@ -1,6 +1,5 @@
 import { LitElement, html } from 'lit';
 import { styleMap } from 'lit-html/directives/style-map';
-import { extractColorsFromImage } from './vibrant-utils.js';
 import { extractColors } from './getColors.js';
 import {
   prevBtn,
@@ -9,7 +8,7 @@ import {
   volumeMinus,
   volumePlus,
 } from './my-player-card.icons';
-import idle from './img/idle_art.png';
+import idle from './img/media_player.png';
 import styles from './my-player-card.styles.js';
 
 // Defining the custom element class
@@ -41,14 +40,6 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   static styles = [styles];
-
-  set hass(obj) {
-    this._hass = obj;
-  }
-
-  get hass() {
-    return this._hass;
-  }
   // Method to set configuration
   setConfig(config) {
     this._config = config;
@@ -69,6 +60,23 @@ export class MyMediaPlayerCard extends LitElement {
     this._animationFrameId = null; // Animation frame ID for progress update
     // Bind the toggleVolumeControl method to the class instance
     this.toggleVolumeControl = this.toggleVolumeControl.bind(this);
+  }
+
+  set hass(obj) {
+    this._hass = obj;
+  }
+
+  get hass() {
+    return this._hass;
+  }
+
+  get entityId() {
+    return this._entityId;
+  }
+
+  set entityId(newEntityId) {
+    this._entityId = newEntityId;
+    this.requestUpdate(); // Ensure LitElement re-renders when entityId changes
   }
 
   get entityState() {
@@ -319,9 +327,8 @@ export class MyMediaPlayerCard extends LitElement {
                 class="cover ${this.isPlaying ? 'cover-active' : ''}"
                 style="background-image: url('${this.picture}');"
               ></div>
-
-              ${this._renderBottomBar()}
             </div>
+            ${this._renderBottomBar()}
           </div>
         </ha-card>
       `;
