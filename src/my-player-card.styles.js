@@ -4,60 +4,61 @@ export default css`
   :host {
     --ha-card-border-width: 0px;
   }
-  .music-player {
+  #my-media-player-card {
     border-radius: 0.75rem;
     box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px;
-    padding: 1rem 1rem 0.5rem;
+    background-color: #ffffffcc;
+    color: rgb(0, 0, 0);
+  }
+  .music-player {
+    padding: 1rem;
     display: grid;
     align-items: center;
-    color: rgb(0, 0, 0);
     box-sizing: content-box;
+    row-gap: 0.5rem;
+    grid-template-columns: 1fr min-content;
     transition: margin-top 0.7s ease-in-out 0s, padding 0.7s ease-in-out 0s,
       grid-row-gap 0.3s ease-in-out 0s, background-image 0.3s ease-in-out 0s;
-    grid-template-columns: min-content 1fr;
-    row-gap: 0.5rem;
   }
   .music-active {
     margin-top: 2.5rem;
     padding: 0px 1rem 0.5rem;
     row-gap: 0px;
     transition: all 0.7s ease-in 0s;
-    background-color: #ffffffcc;
-    background-image: linear-gradient(
-      24deg,
-      rgba(var(--mutedColorRgb), 0.8) 0%,
-      rgba(var(--lightMutedColorRgb), 0.7) 65%,
-      rgba(var(--lightMutedColorRgb), 0) 100%
-    );
     &.music-paused {
       margin-top: 0;
-      padding: 1rem;
+      padding: 0.5rem 1rem;
     }
   }
+
   .cover {
     position: relative;
     transition: transform 1s cubic-bezier(0.4, 0, 1, 1) 0.3s,
       border 0.8s linear 0.5s, background-image 0.8s linear 0.3s,
-      box-shadow 0.8s 0.3s;
+      box-shadow 0.8s 0.3s, opacity 1s ease-in-out 0.5s;
     display: flex;
     width: 150px;
     height: 150px;
-    background-size: contain;
+    background-size: cover;
     border-radius: 0.75rem;
+    opacity: 0;
   }
   .cover-active {
     transform: translateY(-2rem);
     box-shadow: rgba(0, 0, 0, 0.2) 0px 10px 10px;
     border: 1px solid rgba(171, 171, 171, 0.8);
+    opacity: 1;
   }
   .content {
-    padding-left: 1rem;
+    padding-right: 1rem;
     display: flex;
     flex-direction: column;
     height: 100%;
     justify-content: center;
     width: initial;
-    overflow: auto;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    transition: all 0.7s ease-in-out 0s;
   }
   .metadata {
     text-align: center;
@@ -112,7 +113,7 @@ export default css`
     filter: drop-shadow(rgba(0, 0, 0, 0.3) 0px 2px 2px);
   }
   .progress-bar {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.2);
     height: 0.5rem;
     width: 100%;
     border-radius: 999px;
@@ -121,10 +122,10 @@ export default css`
     margin: 0px 0.7rem;
   }
   #progress {
-    background-color: var(--darkMutedColorHex, #000);
     height: 100%;
     width: 0px;
     transition: all 1s ease-out 0s;
+    filter: brightness(0.5);
   }
   .time-info {
     display: flex;
@@ -168,6 +169,7 @@ export default css`
     appearance: none;
     width: 100%;
     height: 0.5rem;
+    filter: brightness(0.5);
     border-radius: 5px;
     background-position: initial;
     background-size: initial;
@@ -178,7 +180,7 @@ export default css`
     background-color: rgba(0, 0, 0, 0.1);
     background-image: linear-gradient(
       to right,
-      var(--darkMutedColorHex, #000) var(--value),
+      var(--bgColor, #000) var(--value),
       transparent var(--value)
     );
     outline: none;
@@ -189,7 +191,7 @@ export default css`
       width: 1rem;
       height: 1rem;
       border-radius: 50%;
-      background: var(--darkMutedColorHex, #000);
+      background: var(--bgColor, #000);
       cursor: pointer;
     }
   }
@@ -228,11 +230,14 @@ export default css`
   .pause {
     display: block;
     position: absolute;
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zM188.3 147.1c-7.6 4.2-12.3 12.3-12.3 20.9V344c0 8.7 4.7 16.7 12.3 20.9s16.8 4.1 24.3-.5l144-88c7.1-4.4 11.5-12.1 11.5-20.5s-4.4-16.1-11.5-20.5l-144-88c-7.4-4.5-16.7-4.7-24.3-.5z"/></svg>');
+    background-image: var(--svg);
+    --svg: url('data:image/svg+xml,\<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\<path d="M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zM188.3 147.1c-7.6 4.2-12.3 12.3-12.3 20.9V344c0 8.7 4.7 16.7 12.3 20.9s16.8 4.1 24.3-.5l144-88c7.1-4.4 11.5-12.1 11.5-20.5s-4.4-16.1-11.5-20.5l-144-88c-7.4-4.5-16.7-4.7-24.3-.5z"/>\</svg>');
     background-size: 100% 100%;
     width: 51px;
     height: 51px;
     transition: all 0.25s linear 0s;
+    border-radius: 1000px;
+
     &::before,
     &::after {
       border-radius: 1000px;
@@ -248,11 +253,19 @@ export default css`
     transition: all 0.25s linear 0s;
   }
   .playing {
+    position: relative;
+    width: 51px;
+    height: 51px;
+    display: flex;
+    &:hover {
+      transform: scale(1.1);
+    }
     .play {
       opacity: 0;
     }
     .pause {
-      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM224 192V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32zm128 0V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32z"/></svg>');
+      --svg: url('data:image/svg+xml,\<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\<path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM224 192V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32zm128 0V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32z"/>\</svg>');
+      background-image: var(--svg);
       opacity: 1;
       &::before {
         animation: 1.5s ease-in-out 0s infinite normal none running audio1;
@@ -262,34 +275,23 @@ export default css`
       }
     }
   }
-  .playing {
-    position: relative;
-    width: 51px;
-    height: 51px;
-    display: flex;
-    &:hover {
-      transform: scale(1.1);
-      .play::before {
-        box-shadow: rgba(255, 238, 125, 0.8) 0px 0px 12px;
-      }
-    }
-  }
+
   .animate-audio1 {
     animation: 1.5s ease-in-out 0s infinite normal none running audio1;
   }
   @keyframes audio1 {
     0%,
     100% {
-      box-shadow: 0 0 0 0.4em rgba(var(--mutedColorRgb), 0.4);
+      box-shadow: 0 0 0 0.4em rgba(var(--bgColor), 0.4);
     }
     25% {
-      box-shadow: 0 0 0 0.15em rgba(var(--mutedColorRgb), 0.15);
+      box-shadow: 0 0 0 0.15em rgba(var(--bgColor), 0.15);
     }
     50% {
-      box-shadow: 0 0 0 0.55em rgba(var(--mutedColorRgb), 0.55);
+      box-shadow: 0 0 0 0.55em rgba(var(--bgColor), 0.55);
     }
     75% {
-      box-shadow: 0 0 0 0.25em rgba(var(--mutedColorRgb), 0.25);
+      box-shadow: 0 0 0 0.25em rgba(var(--bgColor), 0.25);
     }
   }
   .animate-audio2 {
@@ -298,16 +300,16 @@ export default css`
   @keyframes audio2 {
     0%,
     100% {
-      box-shadow: 0 0 0 0.75em rgba(var(--mutedColorRgb), 0.15);
+      box-shadow: 0 0 0 0.75em rgba(var(--bgColor), 0.15);
     }
     25% {
-      box-shadow: 0 0 0 0.4em rgba(var(--mutedColorRgb), 0.3);
+      box-shadow: 0 0 0 0.4em rgba(var(--bgColor), 0.3);
     }
     50% {
-      box-shadow: 0 0 0 0.15em rgba(var(--mutedColorRgb), 0.05);
+      box-shadow: 0 0 0 0.15em rgba(var(--bgColor), 0.05);
     }
     75% {
-      box-shadow: 0 0 0 0.55em rgba(var(--mutedColorRgb), 0.45);
+      box-shadow: 0 0 0 0.55em rgba(var(--bgColor), 0.45);
     }
   }
 `;

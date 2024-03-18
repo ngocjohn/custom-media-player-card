@@ -1,5 +1,7 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
+import { styleMap } from 'lit-html/directives/style-map';
 import { extractColorsFromImage } from './vibrant-utils.js';
+import { extractColors } from './getColors.js';
 import {
   prevBtn,
   nextBtn,
@@ -7,7 +9,7 @@ import {
   volumeMinus,
   volumePlus,
 } from './my-player-card.icons';
-
+import idle from './img/idle_art.png';
 import styles from './my-player-card.styles.js';
 
 // Defining the custom element class
@@ -17,10 +19,23 @@ export class MyMediaPlayerCard extends LitElement {
     return {
       hass: {}, // Home Assistant instance
       _config: {}, // Configuration object
+      entityId: { type: String },
+      isPlaying: { type: Boolean }, // Add isPlaying property
+      isPaused: { type: Boolean }, // Add isPlaying property
+      isIdle: { type: Boolean }, // Add isPlaying property
+      isStandby: { type: Boolean }, // Add isPlaying property
+      isUnavailable: { type: Boolean }, // Add isPlaying property
+      isOff: { type: Boolean }, // Add isPlaying property
+      isActive: { type: Boolean }, // Add isPlaying property
+      picture: { type: String },
       progress: { type: Number }, // Current media progress
       mediaPosition: { type: Number }, // Current media position
       mediaDuration: { type: Number }, // Total media duration
       volume: { type: Number },
+      backgroundColor: { type: String },
+      backgroundColorRGB: { type: String },
+      foregroundColorRGB: { type: String },
+      foregroundColor: { type: String },
     };
   }
 
@@ -36,14 +51,47 @@ export class MyMediaPlayerCard extends LitElement {
     // Bind the toggleVolumeControl method to the class instance
     this.toggleVolumeControl = this.toggleVolumeControl.bind(this);
   }
-  // Method to set configuration
-  setConfig(config) {
-    this._config = config;
+
+  get entityId() {
+    return this._entityId;
   }
 
-  // Method to get the size of the card
-  getCardSize() {
-    return 3;
+  set entityId(newEntityId) {
+    this._entityId = newEntityId;
+    this.requestUpdate(); // Ensure LitElement re-renders when entityId changes
+  }
+
+  get entityState() {
+    const stateObj = this.hass.states[this.entityId];
+    const state = stateObj.state;
+    return state;
+  }
+  get isPlaying() {
+    return this.entityState === 'playing';
+  }
+  get isPaused() {
+    return this.entityState === 'paused';
+  }
+  get isIdle() {
+    return this.entityState === 'idle';
+  }
+  get isStandby() {
+    return this.entityState === 'standby';
+  }
+  get isUnavailable() {
+    return this.entityState === 'unavailable';
+  }
+  get isOff() {
+    return this.entityState === 'off';
+  }
+  get isActive() {
+    return !this.isOff && !this.isUnavailable && !this.isIdle;
+  }
+  get picture() {
+    const stateObj = this.hass.states[this.entityId];
+    const entityImage = stateObj.attributes.entity_picture;
+    let entityPicture = entityImage ? entityImage : idle;
+    return entityPicture;
   }
 
   // Callback when the element is added to the DOM
@@ -63,14 +111,14 @@ export class MyMediaPlayerCard extends LitElement {
   // Method to start updating progress
   _startProgressUpdate() {
     const updateProgress = () => {
-      const stateObj = this.hass.states[this._config.entity];
+      const stateObj = this.hass.states[this.entityId];
       if (stateObj) {
         // Extracting media information from Home Assistant state
         const { media_position_updated_at, media_position, media_duration } =
           stateObj.attributes;
         let percentage = 0;
         let updatedPosition = media_position;
-        if (stateObj.state === 'playing') {
+        if (this.isPlaying) {
           // Calculating progress percentage when media is playing
           const updatedAt =
             new Date(media_position_updated_at).getTime() / 1000;
@@ -78,7 +126,7 @@ export class MyMediaPlayerCard extends LitElement {
           const elapsedTime = now - updatedAt;
           updatedPosition = media_position + elapsedTime;
           percentage = (updatedPosition / media_duration) * 100;
-        } else if (stateObj.state === 'paused') {
+        } else if (this.isPaused) {
           // Calculating progress percentage when media is paused
           percentage = (media_position / media_duration) * 100;
         }
@@ -101,10 +149,8 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   _renderControls() {
-    const stateObj = this.hass.states[this._config.entity];
-    const isPlaying = stateObj && stateObj.state === 'playing';
     return html`
-      <div class="controls">
+      <div class="controls" style="--bgColor: ${this.backgroundColorRGB};">
         <button
           id="prevBtn"
           class="control-btn"
@@ -116,7 +162,7 @@ export class MyMediaPlayerCard extends LitElement {
         </button>
         <button
           id="playPauseBtn"
-          class=" control-btn ${isPlaying ? 'playing' : ''}"
+          class=" control-btn ${this.isPlaying ? 'playing' : ''}"
           @click=${() => this._serviceCmd('media_play_pause')}
         >
           <span class="play"></span>
@@ -134,16 +180,15 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   _renderMediaInfo() {
-    const stateObj = this.hass.states[this._config.entity];
+    const stateObj = this.hass.states[this.entityId];
     const mediaTitle = stateObj ? stateObj.attributes.media_title : 'Unknown';
     const mediaArtist = stateObj ? stateObj.attributes.media_artist : 'Unknown';
-    const isPlaying = stateObj && stateObj.state === 'playing';
 
     return html`
       <div id="mediaInfo" class="metadata">
         <h2
           id="mediaTitle"
-          style="text-wrap:${!isPlaying ? 'pretty' : ''};"
+          style="text-wrap:${!this.isPlaying ? 'pretty' : ''};"
           class="media-title"
         >
           <span>${mediaTitle}</span>
@@ -154,35 +199,24 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   _renderProgresBar() {
-    const stateObj = this.hass.states[this._config.entity];
-    // Extracting media position and duration
-    const mediaPosition = stateObj ? stateObj.attributes.media_position : 0;
-    const mediaDuration = stateObj ? stateObj.attributes.media_duration : 0;
     const formattedPosition = this._formatTime(this.mediaPosition); // Format media position
-    const formattedDuration = this._formatTime(mediaDuration); // Format media duration
-
+    const formattedDuration = this._formatTime(this.mediaDuration); // Format  media duration
+    const progressStyles = {
+      backgroundColor: `${this.backgroundColor}`,
+      width: `${this.progress}%`,
+    };
     return html`
       <div class="progress-info">
         <span>${formattedPosition}</span>
-        <div class="progress-bar">
-          <div id="progress" style="width: ${this.progress}%;"></div>
+        <div
+          class="progress-bar"
+          style="background-color: rgba(${this.foregroundColorRGB},0.1);"
+        >
+          <div id="progress" style=${styleMap(progressStyles)}></div>
         </div>
         <span>${formattedDuration}</span>
       </div>
     `;
-  }
-
-  handleVolumeChange(event) {
-    this.volume = event.target.value;
-    this.updateVolume();
-  }
-  // Method to handle updating the volume_level attribute of the media player
-  updateVolume() {
-    const level_input = this.volume / 100;
-    this.hass.callService('media_player', 'volume_set', {
-      entity_id: this._config.entity,
-      volume_level: level_input, // Volume level should be between 0 and 1
-    });
   }
 
   // Render the volume slider
@@ -207,7 +241,8 @@ export class MyMediaPlayerCard extends LitElement {
           max="100"
           .value="${Math.round(this.volume)}"
           @input="${this.handleVolumeChange}"
-          style="--value: ${Math.round(this.volume)}%;"
+          style="--value: ${Math.round(this.volume)}%; --bgColor: ${this
+            .backgroundColor};"
         />
         <button id="volumePlus" @click=${() => this._serviceCmd('volume_up')}>
           ${volumePlus}
@@ -215,6 +250,18 @@ export class MyMediaPlayerCard extends LitElement {
         <p>${Math.round(this.volume)}</p>
       </div>
     `;
+  }
+  _renderBottomBar() {
+    if (this.isActive) {
+      return html`
+        <div class="bottom-bar progress-visible">
+          ${this._renderProgresBar()} ${this._renderVolumeSlider()}
+          <div id="volumeBtn" class="volumeBtn">
+            <button @click=${this.toggleVolumeControl}>${volumeBtn}</button>
+          </div>
+        </div>
+      `;
+    }
   }
   // Rendering method
   render() {
@@ -226,43 +273,49 @@ export class MyMediaPlayerCard extends LitElement {
     if (!stateObj) {
       return html` <ha-card>Unknown entity: ${this._config.entity}</ha-card> `;
     }
-
-    const isPlaying = stateObj && stateObj.state === 'playing';
-    const isPaused = stateObj && stateObj.state === 'paused';
-    const entityImage = stateObj.attributes.entity_picture;
-    let entityPicture = entityImage ? entityImage : '/local/img/idle_art.png';
-
-    // Determine if media is playing
-    this._setBackgroundVibrantColor();
-    this._getAndLogMediaInfoWidth();
-
-    // Rendering the media player card
-    return html`
-      <ha-card>
-        <div
-          id="my-media-player-card"
-          class="music-player ${isPlaying
-            ? 'music-active'
-            : isPaused
-            ? 'music-active music-paused'
-            : ''}"
-        >
+    if (stateObj) {
+      this._setBackgroundVibrantColor();
+      this._getAndLogMediaInfoWidth();
+      // Rendering the media player card
+      const gradientBg = {
+        backgroundColor: `${this.backgroundColor}`,
+        backgroundImage: `linear-gradient(to right, rgba(${this.backgroundColorRGB}, 1) 60%, rgba(${this.backgroundColorRGB}, 0) 90%), url('${this.picture}')`,
+        backgroundSize: `contain`,
+        backgroundRepeat: `no-repeat`,
+        backgroundPosition: `right bottom`,
+        transition: `background-image 1s ease-in-out 0.3s`,
+      };
+      const gradient = {
+        backgroundImage: `linear-gradient(317deg, rgba(${this.backgroundColorRGB}, 0.8) 0%, rgba(${this.backgroundColorRGB}, 0.7) 45%, transparent 100%)`,
+        transition: `background-color 1s ease-in-out 0.3s`,
+      };
+      return html`
+        <ha-card>
           <div
-            class="cover ${isPlaying ? 'cover-active' : ''}"
-            style="background-image: url('${entityPicture}');"
-          ></div>
-          <div class="content">
-            ${this._renderMediaInfo()} ${this._renderControls()}
-          </div>
-          <div class="bottom-bar progress-visible">
-            ${this._renderProgresBar()} ${this._renderVolumeSlider()}
-            <div id="volumeBtn" class="volumeBtn">
-              <button @click=${this.toggleVolumeControl}>${volumeBtn}</button>
+            id="my-media-player-card"
+            style=${styleMap(this.isPlaying ? gradient : gradientBg)}
+          >
+            <div
+              class="music-player ${this.isPlaying
+                ? 'music-active'
+                : this.isPaused
+                ? 'music-active music-paused'
+                : ''}"
+            >
+              <div class="content">
+                ${this._renderMediaInfo()} ${this._renderControls()}
+              </div>
+              <div
+                class="cover ${this.isPlaying ? 'cover-active' : ''}"
+                style="background-image: url('${this.picture}');"
+              ></div>
+
+              ${this._renderBottomBar()}
             </div>
           </div>
-        </div>
-      </ha-card>
-    `;
+        </ha-card>
+      `;
+    }
   }
 
   toggleVolumeControl() {
@@ -272,7 +325,7 @@ export class MyMediaPlayerCard extends LitElement {
     this.playPopupSound();
   }
   playPopupSound() {
-    const audioElement = new Audio('/local/popup.m4a');
+    const audioElement = new Audio('/local/sound/popup.m4a');
     audioElement.play();
   }
 
@@ -298,95 +351,44 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   _setBackgroundVibrantColor() {
-    const stateObj = this.hass.states[this._config.entity];
-    // Determine if media is playing
-    const isPlaying = stateObj && stateObj.state === 'playing';
-    const entityImage = stateObj.attributes.entity_picture;
-    const entityPicture = entityImage ? entityImage : '/local/img/idle_art.png';
     // Check if entityPicture has changed
-    if (entityPicture !== this._lastEntityPicture) {
-      this._lastEntityPicture = entityPicture; // Update the last entityPicture
-      if (isPlaying && entityPicture) {
-        extractColorsFromImage(entityPicture).then((colors) => {
-          // Assign individual colors to constants
-          const vibrantColorHex = colors.vibrant ? colors.vibrant.hex : '';
-          const vibrantColorRgb = colors.vibrant
-            ? colors.vibrant.rgb.join(', ')
-            : '';
-          const mutedColorHex = colors.muted ? colors.muted.hex : '';
-          const mutedColorRgb = colors.muted ? colors.muted.rgb.join(', ') : '';
-          const darkVibrantColorHex = colors.darkVibrant
-            ? colors.darkVibrant.hex
-            : '';
-          const darkVibrantColorRgb = colors.darkVibrant
-            ? colors.darkVibrant.rgb.join(', ')
-            : '';
-          const darkMutedColorHex = colors.darkMuted
-            ? colors.darkMuted.hex
-            : '';
-          const darkMutedColorRgb = colors.darkMuted
-            ? colors.darkMuted.rgb.join(', ')
-            : '';
-          const lightVibrantColorHex = colors.lightVibrant
-            ? colors.lightVibrant.hex
-            : '';
-          const lightVibrantColorRgb = colors.lightVibrant
-            ? colors.lightVibrant.rgb.join(', ')
-            : '';
-          const lightMutedColorHex = colors.lightMuted
-            ? colors.lightMuted.hex
-            : '';
-          const lightMutedColorRgb = colors.lightMuted
-            ? colors.lightMuted.rgb.join(', ')
-            : '';
-
-          // Update the style attribute with the extracted colors
-          const playerCard = this.shadowRoot.querySelector('.music-player');
-          playerCard.style.setProperty('--vibrantColorHex', vibrantColorHex);
-          playerCard.style.setProperty('--vibrantColorRgb', vibrantColorRgb);
-          playerCard.style.setProperty('--mutedColorHex', mutedColorHex);
-          playerCard.style.setProperty('--mutedColorRgb', mutedColorRgb);
-          playerCard.style.setProperty(
-            '--darkVibrantColorHex',
-            darkVibrantColorHex
-          );
-          playerCard.style.setProperty(
-            '--darkVibrantColorRgb',
-            darkVibrantColorRgb
-          );
-          playerCard.style.setProperty(
-            '--darkMutedColorHex',
-            darkMutedColorHex
-          );
-          playerCard.style.setProperty(
-            '--darkMutedColorRgb',
-            darkMutedColorRgb
-          );
-          playerCard.style.setProperty(
-            '--lightVibrantColorHex',
-            lightVibrantColorHex
-          );
-          playerCard.style.setProperty(
-            '--lightVibrantColorRgb',
-            lightVibrantColorRgb
-          );
-          playerCard.style.setProperty(
-            '--lightMutedColorHex',
-            lightMutedColorHex
-          );
-          playerCard.style.setProperty(
-            '--lightMutedColorRgb',
-            lightMutedColorRgb
-          );
-        });
+    if (this.picture !== this._picture) {
+      this._picture = this.picture; // Update the last entityPicture
+      if (this.picture) {
+        extractColors(this.picture)
+          .then(({ background, foreground, foregroundHEX }) => {
+            this.backgroundColor = background ? background.hex : '';
+            this.backgroundColorRGB = background
+              ? background.rgb.join(', ')
+              : '';
+            this.foregroundColorRGB = foreground.join(', ');
+            this.foregroundColor = foregroundHEX;
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+          });
       }
     }
   }
+
+  // Method to handle updating the volume_level attribute of the media player
+  handleVolumeChange(event) {
+    this.volume = event.target.value;
+    this.updateVolume();
+  }
+  updateVolume() {
+    const level_input = this.volume / 100;
+    this.hass.callService('media_player', 'volume_set', {
+      entity_id: this.entityId,
+      volume_level: level_input, // Volume level should be between 0 and 1
+    });
+  }
+
   // Method to handle media control commands
   _serviceCmd(service_type) {
     console.log(service_type);
     this.hass.callService('media_player', service_type, {
-      entity_id: this._config.entity,
+      entity_id: this.entityId,
     });
     setTimeout(() => {
       const mediaTitle = this.shadowRoot.getElementById('mediaTitle');
@@ -396,5 +398,34 @@ export class MyMediaPlayerCard extends LitElement {
         this.shadowRoot.getElementById('mediaTitle').clientWidth;
       console.log('title:', mediaTitleWidth, 'info:', mediaInfoWidth);
     }, 1000);
+  }
+  // Method to set configuration
+  setConfig(config) {
+    this._config = config;
+    if (this._config) {
+      this.entityId = this._config.entity;
+    }
+  }
+  static getStubConfig(hass) {
+    // Filter for media players that are 'on' or 'playing'
+    const mediaPlayers = Object.keys(hass.states).filter((entityId) => {
+      return (
+        entityId.startsWith('media_player.') &&
+        (hass.states[entityId].state === 'paused' ||
+          hass.states[entityId].state === 'playing')
+      );
+    });
+
+    if (mediaPlayers.length === 0) {
+      return { entity: 'media_player.default' }; // Default entity if none are 'on' or 'playing'
+    }
+
+    // Select a random media player entity ID from the filtered list
+    const randomIndex = Math.floor(Math.random() * mediaPlayers.length);
+    return { entity: mediaPlayers[randomIndex] };
+  }
+  // Method to get the size of the card
+  getCardSize() {
+    return 3;
   }
 }

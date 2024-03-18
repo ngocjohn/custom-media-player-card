@@ -613,6 +613,70 @@ const $ab210b2da7b39b9d$export$f5c524615a7708d6 = {
 
 
 
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */ const $107bb7d062dde330$export$9ba3b3f20a85bfa = {
+    ATTRIBUTE: 1,
+    CHILD: 2,
+    PROPERTY: 3,
+    BOOLEAN_ATTRIBUTE: 4,
+    EVENT: 5,
+    ELEMENT: 6
+}, $107bb7d062dde330$export$99b43ad1ed32e735 = (t)=>(...e)=>({
+            _$litDirective$: t,
+            values: e
+        });
+class $107bb7d062dde330$export$befdefbdce210f91 {
+    constructor(t){}
+    get _$AU() {
+        return this._$AM._$AU;
+    }
+    _$AT(t, e, i) {
+        this._$Ct = t, this._$AM = e, this._$Ci = i;
+    }
+    _$AS(t, e) {
+        return this.update(t, e);
+    }
+    update(t, e) {
+        return this.render(...e);
+    }
+}
+
+
+/**
+ * @license
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */ const $19f464fcda7d2482$var$n = "important", $19f464fcda7d2482$var$i = " !" + $19f464fcda7d2482$var$n, $19f464fcda7d2482$export$1e5b4ce2fa884e6a = (0, $107bb7d062dde330$export$99b43ad1ed32e735)(class extends (0, $107bb7d062dde330$export$befdefbdce210f91) {
+    constructor(t){
+        if (super(t), t.type !== (0, $107bb7d062dde330$export$9ba3b3f20a85bfa).ATTRIBUTE || "style" !== t.name || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
+    }
+    render(t) {
+        return Object.keys(t).reduce((e, r)=>{
+            const s = t[r];
+            return null == s ? e : e + `${r = r.includes("-") ? r : r.replace(/(?:^(webkit|moz|ms|o)|)(?=[A-Z])/g, "-$&").toLowerCase()}:${s};`;
+        }, "");
+    }
+    update(e, [r]) {
+        const { style: s } = e.element;
+        if (void 0 === this.ft) return this.ft = new Set(Object.keys(r)), this.render(r);
+        for (const t of this.ft)null == r[t] && (this.ft.delete(t), t.includes("-") ? s.removeProperty(t) : s[t] = null);
+        for(const t in r){
+            const e = r[t];
+            if (null != e) {
+                this.ft.add(t);
+                const r = "string" == typeof e && e.endsWith($19f464fcda7d2482$var$i);
+                t.includes("-") || r ? s.setProperty(t, r ? e.slice(0, -11) : e, r ? $19f464fcda7d2482$var$n : "") : s[t] = e;
+            }
+        }
+        return 0, $f58f44579a4747ac$export$9c068ae9cc5db4e8;
+    }
+});
+
+
 var $a3ab59aba365b2b9$exports = {};
 (function webpackUniversalModuleDefinition(root, factory) {
     $a3ab59aba365b2b9$exports = factory();
@@ -2362,6 +2426,79 @@ const $295a82c099c0f16c$export$1e1d885846e71968 = async (imageUrl)=>{
 
 
 
+const $2832a6b6c9d55462$var$DEBUG_COLOR = false;
+const $2832a6b6c9d55462$var$CONTRAST_RATIO = 4.5;
+const $2832a6b6c9d55462$var$COLOR_SIMILARITY_THRESHOLD = 150;
+const $2832a6b6c9d55462$var$luminosity = (rgb)=>{
+    const lum = [
+        0,
+        0,
+        0
+    ];
+    for(let i = 0; i < rgb.length; i++){
+        const chan = rgb[i] / 255;
+        lum[i] = chan <= 0.03928 ? chan / 12.92 : ((chan + 0.055) / 1.055) ** 2.4;
+    }
+    return 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2];
+};
+const $2832a6b6c9d55462$var$rgbContrast = (color1, color2)=>{
+    const lum1 = $2832a6b6c9d55462$var$luminosity(color1);
+    const lum2 = $2832a6b6c9d55462$var$luminosity(color2);
+    if (lum1 > lum2) return (lum1 + 0.05) / (lum2 + 0.05);
+    return (lum2 + 0.05) / (lum1 + 0.05);
+};
+const $2832a6b6c9d55462$var$getRGBContrastRatio = (rgb1, rgb2)=>Math.round(($2832a6b6c9d55462$var$rgbContrast(rgb1, rgb2) + Number.EPSILON) * 100) / 100;
+const $2832a6b6c9d55462$export$1561819adeec7903 = async (url, downsampleColors = 16)=>{
+    const palette = await (0, (/*@__PURE__*/$parcel$interopDefault($a3ab59aba365b2b9$exports))).from(url, {
+        colorCount: downsampleColors
+    }).getPalette();
+    const colors = Object.values(palette);
+    colors.sort((colorA, colorB)=>colorB.population - colorA.population);
+    const backgroundColor = colors[0];
+    let foregroundColor;
+    const contrastRatios = new Map();
+    const approvedContrastRatio = (hex, rgb)=>{
+        if (!contrastRatios.has(hex)) contrastRatios.set(hex, $2832a6b6c9d55462$var$getRGBContrastRatio(backgroundColor.rgb, rgb));
+        return contrastRatios.get(hex) > $2832a6b6c9d55462$var$CONTRAST_RATIO;
+    };
+    for(let i = 1; i < colors.length && !foregroundColor; i++){
+        if (approvedContrastRatio(colors[i].hex, colors[i].rgb)) {
+            if ($2832a6b6c9d55462$var$DEBUG_COLOR) console.log("PICKED", colors[i].hex);
+            foregroundColor = colors[i].rgb;
+            break;
+        }
+        const currentColor = colors[i];
+        if ($2832a6b6c9d55462$var$DEBUG_COLOR) console.log("Finding similar color with better contrast", currentColor.hex);
+        for(let j = i + 1; j < colors.length; j++){
+            const compareColor = colors[j];
+            const diffScore = Math.abs(currentColor.rgb[0] - compareColor.rgb[0]) + Math.abs(currentColor.rgb[1] - compareColor.rgb[1]) + Math.abs(currentColor.rgb[2] - compareColor.rgb[2]);
+            if ($2832a6b6c9d55462$var$DEBUG_COLOR) console.log(compareColor.hex, diffScore);
+            if (diffScore > $2832a6b6c9d55462$var$COLOR_SIMILARITY_THRESHOLD) continue;
+            if (approvedContrastRatio(compareColor.hex, compareColor.rgb)) {
+                if ($2832a6b6c9d55462$var$DEBUG_COLOR) console.log("PICKED", compareColor.hex);
+                foregroundColor = compareColor.rgb;
+                break;
+            }
+        }
+    }
+    if (!foregroundColor) foregroundColor = backgroundColor.getYiq() < 200 ? [
+        255,
+        255,
+        255
+    ] : [
+        0,
+        0,
+        0
+    ];
+    return {
+        background: backgroundColor,
+        foreground: foregroundColor,
+        foregroundHEX: new backgroundColor.constructor(foregroundColor, 0).hex
+    };
+};
+
+
+
 const $ab37392bf2f9deb0$export$38daf55da2e14a4f = (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)` <!-- SVG icon for previous track -->
   <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
     <path
@@ -2414,65 +2551,70 @@ const $ab37392bf2f9deb0$export$b068b5ff921c80be = (0, $f58f44579a4747ac$export$c
 `;
 
 
+var $7446dcd4c0f22dac$exports = {};
+$7446dcd4c0f22dac$exports = new URL("idle_art.52534dfb.png?" + Date.now(), import.meta.url).toString();
+
+
 
 var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
   :host {
     --ha-card-border-width: 0px;
   }
-  .music-player {
+  #my-media-player-card {
     border-radius: 0.75rem;
     box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px;
-    padding: 1rem 1rem 0.5rem;
+    background-color: #ffffffcc;
+    color: rgb(0, 0, 0);
+  }
+  .music-player {
+    padding: 1rem;
     display: grid;
     align-items: center;
-    color: rgb(0, 0, 0);
     box-sizing: content-box;
+    row-gap: 0.5rem;
+    grid-template-columns: 1fr min-content;
     transition: margin-top 0.7s ease-in-out 0s, padding 0.7s ease-in-out 0s,
       grid-row-gap 0.3s ease-in-out 0s, background-image 0.3s ease-in-out 0s;
-    grid-template-columns: min-content 1fr;
-    row-gap: 0.5rem;
   }
   .music-active {
     margin-top: 2.5rem;
     padding: 0px 1rem 0.5rem;
     row-gap: 0px;
     transition: all 0.7s ease-in 0s;
-    background-color: #ffffffcc;
-    background-image: linear-gradient(
-      24deg,
-      rgba(var(--mutedColorRgb), 0.8) 0%,
-      rgba(var(--lightMutedColorRgb), 0.7) 65%,
-      rgba(var(--lightMutedColorRgb), 0) 100%
-    );
     &.music-paused {
       margin-top: 0;
-      padding: 1rem;
+      padding: 0.5rem 1rem;
     }
   }
+
   .cover {
     position: relative;
     transition: transform 1s cubic-bezier(0.4, 0, 1, 1) 0.3s,
       border 0.8s linear 0.5s, background-image 0.8s linear 0.3s,
-      box-shadow 0.8s 0.3s;
+      box-shadow 0.8s 0.3s, opacity 1s ease-in-out 0.5s;
     display: flex;
     width: 150px;
     height: 150px;
-    background-size: contain;
+    background-size: cover;
     border-radius: 0.75rem;
+    opacity: 0;
   }
   .cover-active {
     transform: translateY(-2rem);
     box-shadow: rgba(0, 0, 0, 0.2) 0px 10px 10px;
     border: 1px solid rgba(171, 171, 171, 0.8);
+    opacity: 1;
   }
   .content {
-    padding-left: 1rem;
+    padding-right: 1rem;
     display: flex;
     flex-direction: column;
     height: 100%;
     justify-content: center;
     width: initial;
-    overflow: auto;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    transition: all 0.7s ease-in-out 0s;
   }
   .metadata {
     text-align: center;
@@ -2527,7 +2669,7 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     filter: drop-shadow(rgba(0, 0, 0, 0.3) 0px 2px 2px);
   }
   .progress-bar {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.2);
     height: 0.5rem;
     width: 100%;
     border-radius: 999px;
@@ -2536,10 +2678,10 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     margin: 0px 0.7rem;
   }
   #progress {
-    background-color: var(--darkMutedColorHex, #000);
     height: 100%;
     width: 0px;
     transition: all 1s ease-out 0s;
+    filter: brightness(0.5);
   }
   .time-info {
     display: flex;
@@ -2583,6 +2725,7 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     appearance: none;
     width: 100%;
     height: 0.5rem;
+    filter: brightness(0.5);
     border-radius: 5px;
     background-position: initial;
     background-size: initial;
@@ -2593,7 +2736,7 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     background-color: rgba(0, 0, 0, 0.1);
     background-image: linear-gradient(
       to right,
-      var(--darkMutedColorHex, #000) var(--value),
+      var(--bgColor, #000) var(--value),
       transparent var(--value)
     );
     outline: none;
@@ -2604,7 +2747,7 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
       width: 1rem;
       height: 1rem;
       border-radius: 50%;
-      background: var(--darkMutedColorHex, #000);
+      background: var(--bgColor, #000);
       cursor: pointer;
     }
   }
@@ -2643,11 +2786,14 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
   .pause {
     display: block;
     position: absolute;
-    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zM188.3 147.1c-7.6 4.2-12.3 12.3-12.3 20.9V344c0 8.7 4.7 16.7 12.3 20.9s16.8 4.1 24.3-.5l144-88c7.1-4.4 11.5-12.1 11.5-20.5s-4.4-16.1-11.5-20.5l-144-88c-7.4-4.5-16.7-4.7-24.3-.5z"/></svg>');
+    background-image: var(--svg);
+    --svg: url('data:image/svg+xml,\<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\<path d="M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zM188.3 147.1c-7.6 4.2-12.3 12.3-12.3 20.9V344c0 8.7 4.7 16.7 12.3 20.9s16.8 4.1 24.3-.5l144-88c7.1-4.4 11.5-12.1 11.5-20.5s-4.4-16.1-11.5-20.5l-144-88c-7.4-4.5-16.7-4.7-24.3-.5z"/>\</svg>');
     background-size: 100% 100%;
     width: 51px;
     height: 51px;
     transition: all 0.25s linear 0s;
+    border-radius: 1000px;
+
     &::before,
     &::after {
       border-radius: 1000px;
@@ -2663,11 +2809,19 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
     transition: all 0.25s linear 0s;
   }
   .playing {
+    position: relative;
+    width: 51px;
+    height: 51px;
+    display: flex;
+    &:hover {
+      transform: scale(1.1);
+    }
     .play {
       opacity: 0;
     }
     .pause {
-      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM224 192V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32zm128 0V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32z"/></svg>');
+      --svg: url('data:image/svg+xml,\<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\<path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM224 192V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32zm128 0V320c0 17.7-14.3 32-32 32s-32-14.3-32-32V192c0-17.7 14.3-32 32-32s32 14.3 32 32z"/>\</svg>');
+      background-image: var(--svg);
       opacity: 1;
       &::before {
         animation: 1.5s ease-in-out 0s infinite normal none running audio1;
@@ -2677,34 +2831,23 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
       }
     }
   }
-  .playing {
-    position: relative;
-    width: 51px;
-    height: 51px;
-    display: flex;
-    &:hover {
-      transform: scale(1.1);
-      .play::before {
-        box-shadow: rgba(255, 238, 125, 0.8) 0px 0px 12px;
-      }
-    }
-  }
+
   .animate-audio1 {
     animation: 1.5s ease-in-out 0s infinite normal none running audio1;
   }
   @keyframes audio1 {
     0%,
     100% {
-      box-shadow: 0 0 0 0.4em rgba(var(--mutedColorRgb), 0.4);
+      box-shadow: 0 0 0 0.4em rgba(var(--bgColor), 0.4);
     }
     25% {
-      box-shadow: 0 0 0 0.15em rgba(var(--mutedColorRgb), 0.15);
+      box-shadow: 0 0 0 0.15em rgba(var(--bgColor), 0.15);
     }
     50% {
-      box-shadow: 0 0 0 0.55em rgba(var(--mutedColorRgb), 0.55);
+      box-shadow: 0 0 0 0.55em rgba(var(--bgColor), 0.55);
     }
     75% {
-      box-shadow: 0 0 0 0.25em rgba(var(--mutedColorRgb), 0.25);
+      box-shadow: 0 0 0 0.25em rgba(var(--bgColor), 0.25);
     }
   }
   .animate-audio2 {
@@ -2713,16 +2856,16 @@ var $165724b8e4669b8b$export$2e2bcd8739ae039 = (0, $def2de46b9306e8a$export$dbf3
   @keyframes audio2 {
     0%,
     100% {
-      box-shadow: 0 0 0 0.75em rgba(var(--mutedColorRgb), 0.15);
+      box-shadow: 0 0 0 0.75em rgba(var(--bgColor), 0.15);
     }
     25% {
-      box-shadow: 0 0 0 0.4em rgba(var(--mutedColorRgb), 0.3);
+      box-shadow: 0 0 0 0.4em rgba(var(--bgColor), 0.3);
     }
     50% {
-      box-shadow: 0 0 0 0.15em rgba(var(--mutedColorRgb), 0.05);
+      box-shadow: 0 0 0 0.15em rgba(var(--bgColor), 0.05);
     }
     75% {
-      box-shadow: 0 0 0 0.55em rgba(var(--mutedColorRgb), 0.45);
+      box-shadow: 0 0 0 0.55em rgba(var(--bgColor), 0.45);
     }
   }
 `;
@@ -2734,6 +2877,33 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         return {
             hass: {},
             _config: {},
+            entityId: {
+                type: String
+            },
+            isPlaying: {
+                type: Boolean
+            },
+            isPaused: {
+                type: Boolean
+            },
+            isIdle: {
+                type: Boolean
+            },
+            isStandby: {
+                type: Boolean
+            },
+            isUnavailable: {
+                type: Boolean
+            },
+            isOff: {
+                type: Boolean
+            },
+            isActive: {
+                type: Boolean
+            },
+            picture: {
+                type: String
+            },
             progress: {
                 type: Number
             },
@@ -2745,6 +2915,18 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
             },
             volume: {
                 type: Number
+            },
+            backgroundColor: {
+                type: String
+            },
+            backgroundColorRGB: {
+                type: String
+            },
+            foregroundColorRGB: {
+                type: String
+            },
+            foregroundColor: {
+                type: String
             }
         };
     }
@@ -2762,13 +2944,44 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         // Bind the toggleVolumeControl method to the class instance
         this.toggleVolumeControl = this.toggleVolumeControl.bind(this);
     }
-    // Method to set configuration
-    setConfig(config) {
-        this._config = config;
+    get entityId() {
+        return this._entityId;
     }
-    // Method to get the size of the card
-    getCardSize() {
-        return 3;
+    set entityId(newEntityId) {
+        this._entityId = newEntityId;
+        this.requestUpdate(); // Ensure LitElement re-renders when entityId changes
+    }
+    get entityState() {
+        const stateObj = this.hass.states[this.entityId];
+        const state = stateObj.state;
+        return state;
+    }
+    get isPlaying() {
+        return this.entityState === "playing";
+    }
+    get isPaused() {
+        return this.entityState === "paused";
+    }
+    get isIdle() {
+        return this.entityState === "idle";
+    }
+    get isStandby() {
+        return this.entityState === "standby";
+    }
+    get isUnavailable() {
+        return this.entityState === "unavailable";
+    }
+    get isOff() {
+        return this.entityState === "off";
+    }
+    get isActive() {
+        return !this.isOff && !this.isUnavailable && !this.isIdle;
+    }
+    get picture() {
+        const stateObj = this.hass.states[this.entityId];
+        const entityImage = stateObj.attributes.entity_picture;
+        let entityPicture = entityImage ? entityImage : (0, (/*@__PURE__*/$parcel$interopDefault($7446dcd4c0f22dac$exports)));
+        return entityPicture;
     }
     // Callback when the element is added to the DOM
     connectedCallback() {
@@ -2783,20 +2996,20 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
     // Method to start updating progress
     _startProgressUpdate() {
         const updateProgress = ()=>{
-            const stateObj = this.hass.states[this._config.entity];
+            const stateObj = this.hass.states[this.entityId];
             if (stateObj) {
                 // Extracting media information from Home Assistant state
                 const { media_position_updated_at: media_position_updated_at, media_position: media_position, media_duration: media_duration } = stateObj.attributes;
                 let percentage = 0;
                 let updatedPosition = media_position;
-                if (stateObj.state === "playing") {
+                if (this.isPlaying) {
                     // Calculating progress percentage when media is playing
                     const updatedAt = new Date(media_position_updated_at).getTime() / 1000;
                     const now = Date.now() / 1000;
                     const elapsedTime = now - updatedAt;
                     updatedPosition = media_position + elapsedTime;
                     percentage = updatedPosition / media_duration * 100;
-                } else if (stateObj.state === "paused") // Calculating progress percentage when media is paused
+                } else if (this.isPaused) // Calculating progress percentage when media is paused
                 percentage = media_position / media_duration * 100;
                 // Updating properties
                 this.progress = Math.min(percentage.toFixed(1), 100);
@@ -2816,10 +3029,8 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         return `${minutes}:${secondsLeft}`;
     }
     _renderControls() {
-        const stateObj = this.hass.states[this._config.entity];
-        const isPlaying = stateObj && stateObj.state === "playing";
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-      <div class="controls">
+      <div class="controls" style="--bgColor: ${this.backgroundColorRGB};">
         <button
           id="prevBtn"
           class="control-btn"
@@ -2831,7 +3042,7 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         </button>
         <button
           id="playPauseBtn"
-          class=" control-btn ${isPlaying ? "playing" : ""}"
+          class=" control-btn ${this.isPlaying ? "playing" : ""}"
           @click=${()=>this._serviceCmd("media_play_pause")}
         >
           <span class="play"></span>
@@ -2848,15 +3059,14 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
     `;
     }
     _renderMediaInfo() {
-        const stateObj = this.hass.states[this._config.entity];
+        const stateObj = this.hass.states[this.entityId];
         const mediaTitle = stateObj ? stateObj.attributes.media_title : "Unknown";
         const mediaArtist = stateObj ? stateObj.attributes.media_artist : "Unknown";
-        const isPlaying = stateObj && stateObj.state === "playing";
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       <div id="mediaInfo" class="metadata">
         <h2
           id="mediaTitle"
-          style="text-wrap:${!isPlaying ? "pretty" : ""};"
+          style="text-wrap:${!this.isPlaying ? "pretty" : ""};"
           class="media-title"
         >
           <span>${mediaTitle}</span>
@@ -2866,33 +3076,24 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
     `;
     }
     _renderProgresBar() {
-        const stateObj = this.hass.states[this._config.entity];
-        // Extracting media position and duration
-        const mediaPosition = stateObj ? stateObj.attributes.media_position : 0;
-        const mediaDuration = stateObj ? stateObj.attributes.media_duration : 0;
         const formattedPosition = this._formatTime(this.mediaPosition); // Format media position
-        const formattedDuration = this._formatTime(mediaDuration); // Format media duration
+        const formattedDuration = this._formatTime(this.mediaDuration); // Format  media duration
+        const progressStyles = {
+            backgroundColor: `${this.backgroundColor}`,
+            width: `${this.progress}%`
+        };
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       <div class="progress-info">
         <span>${formattedPosition}</span>
-        <div class="progress-bar">
-          <div id="progress" style="width: ${this.progress}%;"></div>
+        <div
+          class="progress-bar"
+          style="background-color: rgba(${this.foregroundColorRGB},0.1);"
+        >
+          <div id="progress" style=${(0, $19f464fcda7d2482$export$1e5b4ce2fa884e6a)(progressStyles)}></div>
         </div>
         <span>${formattedDuration}</span>
       </div>
     `;
-    }
-    handleVolumeChange(event) {
-        this.volume = event.target.value;
-        this.updateVolume();
-    }
-    // Method to handle updating the volume_level attribute of the media player
-    updateVolume() {
-        const level_input = this.volume / 100;
-        this.hass.callService("media_player", "volume_set", {
-            entity_id: this._config.entity,
-            volume_level: level_input
-        });
     }
     // Render the volume slider
     _renderVolumeSlider() {
@@ -2913,7 +3114,7 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
           max="100"
           .value="${Math.round(this.volume)}"
           @input="${this.handleVolumeChange}"
-          style="--value: ${Math.round(this.volume)}%;"
+          style="--value: ${Math.round(this.volume)}%; --bgColor: ${this.backgroundColor};"
         />
         <button id="volumePlus" @click=${()=>this._serviceCmd("volume_up")}>
           ${0, $ab37392bf2f9deb0$export$86f80383d5836d1d}
@@ -2922,42 +3123,61 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
       </div>
     `;
     }
+    _renderBottomBar() {
+        if (this.isActive) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+        <div class="bottom-bar progress-visible">
+          ${this._renderProgresBar()} ${this._renderVolumeSlider()}
+          <div id="volumeBtn" class="volumeBtn">
+            <button @click=${this.toggleVolumeControl}>${0, $ab37392bf2f9deb0$export$153112e4307e89bd}</button>
+          </div>
+        </div>
+      `;
+    }
     // Rendering method
     render() {
         if (!this._config) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)``; // If Home Assistant instance or configuration is not available, render nothing
         const stateObj = this.hass.states[this._config.entity];
         // If state object is not available, render an unknown entity message
         if (!stateObj) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)` <ha-card>Unknown entity: ${this._config.entity}</ha-card> `;
-        const isPlaying = stateObj && stateObj.state === "playing";
-        const isPaused = stateObj && stateObj.state === "paused";
-        const entityImage = stateObj.attributes.entity_picture;
-        let entityPicture = entityImage ? entityImage : "/local/img/idle_art.png";
-        // Determine if media is playing
-        this._setBackgroundVibrantColor();
-        this._getAndLogMediaInfoWidth();
-        // Rendering the media player card
-        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-      <ha-card>
-        <div
-          id="my-media-player-card"
-          class="music-player ${isPlaying ? "music-active" : isPaused ? "music-active music-paused" : ""}"
-        >
+        if (stateObj) {
+            this._setBackgroundVibrantColor();
+            this._getAndLogMediaInfoWidth();
+            // Rendering the media player card
+            const gradientBg = {
+                backgroundColor: `${this.backgroundColor}`,
+                backgroundImage: `linear-gradient(to right, rgba(${this.backgroundColorRGB}, 1) 60%, rgba(${this.backgroundColorRGB}, 0) 90%), url('${this.picture}')`,
+                backgroundSize: `contain`,
+                backgroundRepeat: `no-repeat`,
+                backgroundPosition: `right bottom`,
+                transition: `background-image 1s ease-in-out 0.3s`
+            };
+            const gradient = {
+                backgroundImage: `linear-gradient(317deg, rgba(${this.backgroundColorRGB}, 0.8) 0%, rgba(${this.backgroundColorRGB}, 0.7) 45%, transparent 100%)`,
+                transition: `background-color 1s ease-in-out 0.3s`
+            };
+            return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+        <ha-card>
           <div
-            class="cover ${isPlaying ? "cover-active" : ""}"
-            style="background-image: url('${entityPicture}');"
-          ></div>
-          <div class="content">
-            ${this._renderMediaInfo()} ${this._renderControls()}
-          </div>
-          <div class="bottom-bar progress-visible">
-            ${this._renderProgresBar()} ${this._renderVolumeSlider()}
-            <div id="volumeBtn" class="volumeBtn">
-              <button @click=${this.toggleVolumeControl}>${0, $ab37392bf2f9deb0$export$153112e4307e89bd}</button>
+            id="my-media-player-card"
+            style=${(0, $19f464fcda7d2482$export$1e5b4ce2fa884e6a)(this.isPlaying ? gradient : gradientBg)}
+          >
+            <div
+              class="music-player ${this.isPlaying ? "music-active" : this.isPaused ? "music-active music-paused" : ""}"
+            >
+              <div class="content">
+                ${this._renderMediaInfo()} ${this._renderControls()}
+              </div>
+              <div
+                class="cover ${this.isPlaying ? "cover-active" : ""}"
+                style="background-image: url('${this.picture}');"
+              ></div>
+
+              ${this._renderBottomBar()}
             </div>
           </div>
-        </div>
-      </ha-card>
-    `;
+        </ha-card>
+      `;
+        }
     }
     toggleVolumeControl() {
         const bottomBar = this.shadowRoot.querySelector(".bottom-bar");
@@ -2966,7 +3186,7 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         this.playPopupSound();
     }
     playPopupSound() {
-        const audioElement = new Audio("/local/popup.m4a");
+        const audioElement = new Audio("/local/sound/popup.m4a");
         audioElement.play();
     }
     // Method to get the width of the mediaInfo div and log it to the console
@@ -2990,50 +3210,36 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
         }
     }
     _setBackgroundVibrantColor() {
-        const stateObj = this.hass.states[this._config.entity];
-        // Determine if media is playing
-        const isPlaying = stateObj && stateObj.state === "playing";
-        const entityImage = stateObj.attributes.entity_picture;
-        const entityPicture = entityImage ? entityImage : "/local/img/idle_art.png";
         // Check if entityPicture has changed
-        if (entityPicture !== this._lastEntityPicture) {
-            this._lastEntityPicture = entityPicture; // Update the last entityPicture
-            if (isPlaying && entityPicture) (0, $295a82c099c0f16c$export$1e1d885846e71968)(entityPicture).then((colors)=>{
-                // Assign individual colors to constants
-                const vibrantColorHex = colors.vibrant ? colors.vibrant.hex : "";
-                const vibrantColorRgb = colors.vibrant ? colors.vibrant.rgb.join(", ") : "";
-                const mutedColorHex = colors.muted ? colors.muted.hex : "";
-                const mutedColorRgb = colors.muted ? colors.muted.rgb.join(", ") : "";
-                const darkVibrantColorHex = colors.darkVibrant ? colors.darkVibrant.hex : "";
-                const darkVibrantColorRgb = colors.darkVibrant ? colors.darkVibrant.rgb.join(", ") : "";
-                const darkMutedColorHex = colors.darkMuted ? colors.darkMuted.hex : "";
-                const darkMutedColorRgb = colors.darkMuted ? colors.darkMuted.rgb.join(", ") : "";
-                const lightVibrantColorHex = colors.lightVibrant ? colors.lightVibrant.hex : "";
-                const lightVibrantColorRgb = colors.lightVibrant ? colors.lightVibrant.rgb.join(", ") : "";
-                const lightMutedColorHex = colors.lightMuted ? colors.lightMuted.hex : "";
-                const lightMutedColorRgb = colors.lightMuted ? colors.lightMuted.rgb.join(", ") : "";
-                // Update the style attribute with the extracted colors
-                const playerCard = this.shadowRoot.querySelector(".music-player");
-                playerCard.style.setProperty("--vibrantColorHex", vibrantColorHex);
-                playerCard.style.setProperty("--vibrantColorRgb", vibrantColorRgb);
-                playerCard.style.setProperty("--mutedColorHex", mutedColorHex);
-                playerCard.style.setProperty("--mutedColorRgb", mutedColorRgb);
-                playerCard.style.setProperty("--darkVibrantColorHex", darkVibrantColorHex);
-                playerCard.style.setProperty("--darkVibrantColorRgb", darkVibrantColorRgb);
-                playerCard.style.setProperty("--darkMutedColorHex", darkMutedColorHex);
-                playerCard.style.setProperty("--darkMutedColorRgb", darkMutedColorRgb);
-                playerCard.style.setProperty("--lightVibrantColorHex", lightVibrantColorHex);
-                playerCard.style.setProperty("--lightVibrantColorRgb", lightVibrantColorRgb);
-                playerCard.style.setProperty("--lightMutedColorHex", lightMutedColorHex);
-                playerCard.style.setProperty("--lightMutedColorRgb", lightMutedColorRgb);
+        if (this.picture !== this._picture) {
+            this._picture = this.picture; // Update the last entityPicture
+            if (this.picture) (0, $2832a6b6c9d55462$export$1561819adeec7903)(this.picture).then(({ background: background, foreground: foreground, foregroundHEX: foregroundHEX })=>{
+                this.backgroundColor = background ? background.hex : "";
+                this.backgroundColorRGB = background ? background.rgb.join(", ") : "";
+                this.foregroundColorRGB = foreground.join(", ");
+                this.foregroundColor = foregroundHEX;
+            }).catch((error)=>{
+                console.error("Error:", error);
             });
         }
+    }
+    // Method to handle updating the volume_level attribute of the media player
+    handleVolumeChange(event) {
+        this.volume = event.target.value;
+        this.updateVolume();
+    }
+    updateVolume() {
+        const level_input = this.volume / 100;
+        this.hass.callService("media_player", "volume_set", {
+            entity_id: this.entityId,
+            volume_level: level_input
+        });
     }
     // Method to handle media control commands
     _serviceCmd(service_type) {
         console.log(service_type);
         this.hass.callService("media_player", service_type, {
-            entity_id: this._config.entity
+            entity_id: this.entityId
         });
         setTimeout(()=>{
             const mediaTitle = this.shadowRoot.getElementById("mediaTitle");
@@ -3041,6 +3247,29 @@ class $9beb25968945f973$export$e2ab76f87befd879 extends (0, $ab210b2da7b39b9d$ex
             const mediaTitleWidth = this.shadowRoot.getElementById("mediaTitle").clientWidth;
             console.log("title:", mediaTitleWidth, "info:", mediaInfoWidth);
         }, 1000);
+    }
+    // Method to set configuration
+    setConfig(config) {
+        this._config = config;
+        if (this._config) this.entityId = this._config.entity;
+    }
+    static getStubConfig(hass) {
+        // Filter for media players that are 'on' or 'playing'
+        const mediaPlayers = Object.keys(hass.states).filter((entityId)=>{
+            return entityId.startsWith("media_player.") && (hass.states[entityId].state === "paused" || hass.states[entityId].state === "playing");
+        });
+        if (mediaPlayers.length === 0) return {
+            entity: "media_player.default"
+        }; // Default entity if none are 'on' or 'playing'
+        // Select a random media player entity ID from the filtered list
+        const randomIndex = Math.floor(Math.random() * mediaPlayers.length);
+        return {
+            entity: mediaPlayers[randomIndex]
+        };
+    }
+    // Method to get the size of the card
+    getCardSize() {
+        return 3;
     }
 }
 
@@ -3050,9 +3279,10 @@ customElements.define("my-media-player-card", (0, $9beb25968945f973$export$e2ab7
 console.info("My Media Player loaded");
 window.customCards = window.customCards || [];
 window.customCards.push({
+    preview: true,
     type: "my-media-player-card",
-    name: "my-media-player-card",
-    description: "my custom media card"
+    name: "My Media Player Card",
+    description: "This is my custom media player card"
 });
 
 

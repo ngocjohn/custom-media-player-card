@@ -6,7 +6,8 @@ console.info('My Media Player loaded');
 
 window.customCards = window.customCards || [];
 window.customCards.push({
+  preview: true,
   type: 'my-media-player-card',
-  name: 'my-media-player-card',
-  description: 'my custom media card',
+  name: 'My Media Player Card',
+  description: 'This is my custom media player card',
 });
