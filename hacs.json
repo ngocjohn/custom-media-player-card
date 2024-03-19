@@ -1,6 +1,6 @@
 {
 	"name": "My Custom Media Player Card",
 	"render_readme": true,
-	"filename": "card.js",
+	"filename": "my-media-player.js",
 	"content_in_root": false
 }
