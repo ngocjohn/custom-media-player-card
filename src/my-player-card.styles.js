@@ -7,9 +7,9 @@ export default css`
   #my-media-player-card {
     border-radius: 0.75rem;
     box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 10px;
-    background-color: #ffffffcc;
     color: rgb(0, 0, 0);
     padding: 0px 1rem 1rem;
+    transition: all 1.2s ease-out 0.3s;
     /* padding: 1rem; */
   }
   .music-player {
@@ -23,16 +23,22 @@ export default css`
   .music-active {
     margin-top: 2.5rem;
     transition: all 0.7s ease-in 0s;
+    padding-right: 1.5rem;
     &.music-paused {
       margin-top: 0;
     }
   }
-
+  .more-info {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
+  }
   .cover {
     position: relative;
     transition: transform 1s cubic-bezier(0.4, 0, 1, 1) 0.3s,
       border 0.8s linear 0.5s, background-image 0.8s linear 0.3s,
-      box-shadow 0.8s 0.3s, opacity 1s ease-in-out 0.5s;
+      box-shadow 0.8s 0.3s, opacity 0.7s ease-in-out 0.3s;
     display: flex;
     width: 150px;
     height: 150px;
@@ -273,9 +279,6 @@ export default css`
     }
   }
 
-  .animate-audio1 {
-    animation: 1.5s ease-in-out 0s infinite normal none running audio1;
-  }
   @keyframes audio1 {
     0%,
     100% {
@@ -290,9 +293,6 @@ export default css`
     75% {
       box-shadow: 0 0 0 0.25em rgba(var(--bgColor), 0.25);
     }
-  }
-  .animate-audio2 {
-    animation: 2.2s ease-in-out 0s infinite normal none running audio2;
   }
   @keyframes audio2 {
     0%,

@@ -81,7 +81,18 @@ export const extractColors = async (url, downsampleColors = 16) => {
     foregroundColor =
       backgroundColor.getYiq() < 200 ? [255, 255, 255] : [0, 0, 0];
   }
-
+  if (DEBUG_COLOR) {
+    console.log(
+      '%cPicked colors',
+      `color: ${foregroundColor}; background-color: ${backgroundColor.hex}; font-weight: bold; padding: 16px;`
+    );
+    console.log(
+      '%cPicked colors 2',
+      `color: ${backgroundColor.hex}; background-color: ${
+        new backgroundColor.constructor(foregroundColor, 0).hex
+      }; font-weight: bold; padding: 16px;`
+    );
+  }
   return {
     background: backgroundColor,
     foreground: foregroundColor,

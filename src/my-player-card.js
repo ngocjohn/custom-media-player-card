@@ -8,18 +8,21 @@ import {
   volumeMinus,
   volumePlus,
 } from './my-player-card.icons';
+import { mdiDotsVertical, mdiPlayBoxMultiple } from '@mdi/js';
 import idle from './img/media_player.png';
+import { fireEvent } from 'custom-card-helpers';
 import styles from './my-player-card.styles.js';
 
 // Defining the custom element class
 export class MyMediaPlayerCard extends LitElement {
   // Properties definition
+  _hass;
   static get properties() {
     return {
-      hass: {}, // Home Assistant instance
       _config: {}, // Configuration object
       audio: { type: String },
       entityId: { type: String },
+      entityState: { type: String },
       isPlaying: { type: Boolean }, // Add isPlaying property
       isPaused: { type: Boolean }, // Add isPlaying property
       isIdle: { type: Boolean }, // Add isPlaying property
@@ -38,17 +41,37 @@ export class MyMediaPlayerCard extends LitElement {
       foregroundColor: { type: String },
     };
   }
-
-  static styles = [styles];
   // Method to set configuration
   setConfig(config) {
     this._config = config;
     if (this._config) {
-      this.entityId = this._config.entity;
-      this.audio = this._config.audio;
-      console.log('Audio:', this.audio, 'Entity', this.entityId);
+      this.entityId = config.entity;
+      this.audio = config.audio;
+    }
+    if (this._hass) {
+      this.hass = this._hass;
     }
   }
+  set hass(hass) {
+    this._hass = hass;
+    this.stateObj = hass.states[this.entityId];
+    if (this.stateObj) {
+      this.entityState = this.stateObj.state;
+      this.isPlaying = this.entityState === 'playing';
+      this.isPaused = this.entityState === 'paused';
+      this.isIdle = this.entityState === 'idle';
+      this.isStandby = this.entityState === 'standby';
+      this.isUnavailable = this.entityState === 'unavailable';
+      this.isOff = this.entityState === 'off';
+      this.isActive = !this.isOff && !this.isUnavailable && !this.isIdle;
+      let entityPicture = this.stateObj.attributes.entity_picture;
+      this.picture = entityPicture ? entityPicture : idle;
+      this.volume = Math.round(this.stateObj.attributes.volume_level * 100);
+    }
+  }
+
+  static styles = [styles];
+
   // Constructor
   constructor() {
     super();
@@ -60,56 +83,6 @@ export class MyMediaPlayerCard extends LitElement {
     this._animationFrameId = null; // Animation frame ID for progress update
     // Bind the toggleVolumeControl method to the class instance
     this.toggleVolumeControl = this.toggleVolumeControl.bind(this);
-  }
-
-  set hass(obj) {
-    this._hass = obj;
-  }
-
-  get hass() {
-    return this._hass;
-  }
-
-  get entityId() {
-    return this._entityId;
-  }
-
-  set entityId(newEntityId) {
-    this._entityId = newEntityId;
-    this.requestUpdate(); // Ensure LitElement re-renders when entityId changes
-  }
-
-  get entityState() {
-    const stateObj = this.hass.states[this.entityId];
-    const state = stateObj.state;
-    return state;
-  }
-  get isPlaying() {
-    return this.entityState === 'playing';
-  }
-  get isPaused() {
-    return this.entityState === 'paused';
-  }
-  get isIdle() {
-    return this.entityState === 'idle';
-  }
-  get isStandby() {
-    return this.entityState === 'standby';
-  }
-  get isUnavailable() {
-    return this.entityState === 'unavailable';
-  }
-  get isOff() {
-    return this.entityState === 'off';
-  }
-  get isActive() {
-    return !this.isOff && !this.isUnavailable && !this.isIdle;
-  }
-  get picture() {
-    const stateObj = this.hass.states[this.entityId];
-    const entityImage = stateObj.attributes.entity_picture;
-    let entityPicture = entityImage ? entityImage : idle;
-    return entityPicture;
   }
 
   // Callback when the element is added to the DOM
@@ -129,11 +102,10 @@ export class MyMediaPlayerCard extends LitElement {
   // Method to start updating progress
   _startProgressUpdate() {
     const updateProgress = () => {
-      const stateObj = this.hass.states[this.entityId];
-      if (stateObj) {
+      if (this.stateObj) {
         // Extracting media information from Home Assistant state
         const { media_position_updated_at, media_position, media_duration } =
-          stateObj.attributes;
+          this.stateObj.attributes;
         let percentage = 0;
         let updatedPosition = media_position;
         if (this.isPlaying) {
@@ -171,6 +143,7 @@ export class MyMediaPlayerCard extends LitElement {
       <div class="controls" style="--bgColor: ${this.backgroundColorRGB};">
         <button
           id="prevBtn"
+          title="Previous track"
           class="control-btn"
           @click=${() => {
             this._serviceCmd('media_previous_track');
@@ -180,7 +153,8 @@ export class MyMediaPlayerCard extends LitElement {
         </button>
         <button
           id="playPauseBtn"
-          class=" control-btn ${this.isPlaying ? 'playing' : ''}"
+          title="${this.isPlaying ? 'Pause' : 'Play'}"
+          class="control-btn ${this.isPlaying ? 'playing' : ''}"
           @click=${() => this._serviceCmd('media_play_pause')}
         >
           <span class="play"></span>
@@ -188,6 +162,7 @@ export class MyMediaPlayerCard extends LitElement {
         </button>
         <button
           id="nextBtn"
+          title="Next track"
           class="control-btn"
           @click=${() => this._serviceCmd('media_next_track')}
         >
@@ -198,9 +173,8 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   _renderMediaInfo() {
-    const stateObj = this.hass.states[this.entityId];
-    const mediaTitle = stateObj ? stateObj.attributes.media_title : 'Unknown';
-    const mediaArtist = stateObj ? stateObj.attributes.media_artist : 'Unknown';
+    const mediaTitle = this.stateObj.attributes.media_title;
+    const mediaArtist = this.stateObj.attributes.media_artist;
 
     return html`
       <div id="mediaInfo" class="metadata">
@@ -239,11 +213,6 @@ export class MyMediaPlayerCard extends LitElement {
 
   // Render the volume slider
   _renderVolumeSlider() {
-    const stateObj = this.hass.states[this._config.entity];
-    this.volume =
-      stateObj && stateObj.attributes.volume_level
-        ? stateObj.attributes.volume_level * 100
-        : '';
     return html`
       <div class="volume-input">
         <button
@@ -257,15 +226,14 @@ export class MyMediaPlayerCard extends LitElement {
           type="range"
           min="0"
           max="100"
-          .value="${Math.round(this.volume)}"
+          .value="${this.volume}"
           @input="${this.handleVolumeChange}"
-          style="--value: ${Math.round(this.volume)}%; --bgColor: ${this
-            .backgroundColor};"
+          style="--value: ${this.volume}%; --bgColor: ${this.backgroundColor};"
         />
         <button id="volumePlus" @click=${() => this._serviceCmd('volume_up')}>
           ${volumePlus}
         </button>
-        <p>${Math.round(this.volume)}</p>
+        <p>${this.volume}</p>
       </div>
     `;
   }
@@ -283,56 +251,56 @@ export class MyMediaPlayerCard extends LitElement {
   }
   // Rendering method
   render() {
-    if (!this._config) {
-      return html``; // If Home Assistant instance or configuration is not available, render nothing
-    }
-    const stateObj = this.hass.states[this._config.entity];
     // If state object is not available, render an unknown entity message
-    if (!stateObj) {
+    if (!this.stateObj) {
       return html` <ha-card>Unknown entity: ${this._config.entity}</ha-card> `;
     }
-    if (stateObj) {
-      this._setBackgroundVibrantColor();
-      this._getAndLogMediaInfoWidth();
-      // Rendering the media player card
-      const gradientBg = {
-        backgroundColor: `${this.backgroundColor}`,
-        backgroundImage: `linear-gradient(to right, rgba(${this.backgroundColorRGB}, 1) 60%, rgba(${this.backgroundColorRGB}, 0) 90%), url('${this.picture}')`,
-        backgroundSize: `contain`,
-        backgroundRepeat: `no-repeat`,
-        backgroundPosition: `right bottom`,
-        transition: `background-image 1s ease-in-out 0.3s`,
-      };
-      const gradient = {
-        backgroundImage: `linear-gradient(317deg, rgba(${this.backgroundColorRGB}, 0.8) 0%, rgba(${this.backgroundColorRGB}, 0.7) 45%, transparent 100%)`,
-        transition: `background-color 1s ease-in-out 0.3s`,
-      };
-      return html`
-        <ha-card>
+    this._setBackgroundVibrantColor();
+    this._getAndLogMediaInfoWidth();
+    // Rendering the media player card
+    const gradientBg = {
+      backgroundColor: `${this.backgroundColor}`,
+      backgroundImage: `linear-gradient(to right, rgba(${this.backgroundColorRGB}, 1) 60%, transparent 100%), radial-gradient(at bottom right, transparent 45%, rgba(${this.backgroundColorRGB}, 1) 85%), url('${this.picture}')`,
+      backgroundSize: `contain`,
+      backgroundRepeat: `no-repeat`,
+      backgroundPosition: `top right`,
+    };
+    const gradient = {
+      backgroundImage: `linear-gradient(317deg, rgba(${this.backgroundColorRGB}, 0.8) 0%, rgba(${this.backgroundColorRGB}, 0.7) 45%, #ffffffcc 100%)`,
+    };
+    return html`
+      <ha-card>
+        <div
+          id="my-media-player-card"
+          style=${styleMap(this.isPlaying ? gradient : gradientBg)}
+        >
+          <ha-icon-button
+            .path=${mdiDotsVertical}
+            .label=${this._hass.localize(
+              'ui.panel.lovelace.cards.show_more_info'
+            )}
+            class="more-info"
+            @click=${this._openMoreInfoDialog}
+          ></ha-icon-button>
           <div
-            id="my-media-player-card"
-            style=${styleMap(this.isPlaying ? gradient : gradientBg)}
+            class="music-player ${this.isPlaying
+              ? 'music-active'
+              : this.isPaused
+              ? 'music-active music-paused'
+              : ''}"
           >
-            <div
-              class="music-player ${this.isPlaying
-                ? 'music-active'
-                : this.isPaused
-                ? 'music-active music-paused'
-                : ''}"
-            >
-              <div class="content">
-                ${this._renderMediaInfo()} ${this._renderControls()}
-              </div>
-              <div
-                class="cover ${this.isPlaying ? 'cover-active' : ''}"
-                style="background-image: url('${this.picture}');"
-              ></div>
+            <div class="content">
+              ${this._renderMediaInfo()} ${this._renderControls()}
             </div>
-            ${this._renderBottomBar()}
+            <div
+              class="cover ${this.isPlaying ? 'cover-active' : ''}"
+              style="background-image: url('${this.picture}');"
+            ></div>
           </div>
-        </ha-card>
-      `;
-    }
+          ${this._renderBottomBar()}
+        </div>
+      </ha-card>
+    `;
   }
 
   toggleVolumeControl() {
@@ -372,8 +340,8 @@ export class MyMediaPlayerCard extends LitElement {
   }
 
   _setBackgroundVibrantColor() {
-    // Check if entityPicture has changed
     if (this.picture !== this._picture) {
+      // Check if entityPicture has changed
       this._picture = this.picture; // Update the last entityPicture
       if (this.picture) {
         extractColors(this.picture)
@@ -395,11 +363,13 @@ export class MyMediaPlayerCard extends LitElement {
   // Method to handle updating the volume_level attribute of the media player
   handleVolumeChange(event) {
     this.volume = event.target.value;
-    this.updateVolume();
+    setTimeout(() => {
+      this.updateVolume();
+    }, 500);
   }
   updateVolume() {
     const level_input = this.volume / 100;
-    this.hass.callService('media_player', 'volume_set', {
+    this._hass.callService('media_player', 'volume_set', {
       entity_id: this.entityId,
       volume_level: level_input, // Volume level should be between 0 and 1
     });
@@ -407,9 +377,14 @@ export class MyMediaPlayerCard extends LitElement {
 
   // Method to handle media control commands
   _serviceCmd(service_type) {
-    this.hass.callService('media_player', service_type, {
+    this._hass.callService('media_player', service_type, {
       entity_id: this.entityId,
     });
+  }
+  // Method to open the more info dialog
+  _openMoreInfoDialog() {
+    const entityId = this.entityId;
+    fireEvent(this, 'hass-more-info', { entityId });
   }
 
   static getStubConfig(hass) {
